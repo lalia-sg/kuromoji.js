@@ -38,6 +38,25 @@ NodeDictionaryLoader.prototype = Object.create(DictionaryLoader.prototype);
  * @param {NodeDictionaryLoader~onLoad} callback Callback function
  */
 NodeDictionaryLoader.prototype.loadArrayBuffer = function (file, callback) {
+    const isExternalPath = file.startsWith('http');
+
+    if (isExternalPath) {
+        return fetch(file)
+            .then((res) => {
+                return res.arrayBuffer();
+            })
+            .then((body) => {
+                node_zlib.gunzip(body, (err2, decompressed) => {
+                    if (err2) {
+                        return callback(err2);
+                    }
+
+                    const typed_array = new Uint8Array(decompressed);
+
+                    callback(null, typed_array.buffer);
+                });
+            });
+    }
     fs.readFile(file, function (err, buffer) {
         if(err) {
             return callback(err);
